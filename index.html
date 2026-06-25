@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>株式指標 学習アプリ 📈</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2a3340;
+    --txt:#e6edf3; --sub:#9aa7b4; --accent:#4ea1ff; --green:#3fb950;
+    --amber:#d29922; --red:#f85149; --purple:#bc8cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.7;-webkit-font-smoothing:antialiased}
+  header{padding:28px 20px 18px;text-align:center;background:linear-gradient(180deg,#11203a,transparent)}
+  header h1{margin:0;font-size:26px;letter-spacing:.02em}
+  header p{margin:6px 0 0;color:var(--sub);font-size:13px}
+  .wrap{max-width:860px;margin:0 auto;padding:0 16px 80px}
+  nav{position:sticky;top:0;z-index:10;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+    padding:12px 8px;background:rgba(13,17,23,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  nav button{background:var(--panel);color:var(--sub);border:1px solid var(--line);padding:8px 16px;
+    border-radius:999px;cursor:pointer;font-size:14px;font-weight:600;transition:.15s}
+  nav button:hover{color:var(--txt)}
+  nav button.active{background:var(--accent);color:#05121f;border-color:var(--accent)}
+  section{display:none;animation:fade .25s ease}
+  section.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  h2.tt{font-size:20px;margin:24px 0 4px}
+  .lead{color:var(--sub);font-size:14px;margin:0 0 16px}
+
+  /* cards */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+  .card .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .badge{font-size:22px;font-weight:800;color:var(--accent)}
+  .full{color:var(--sub);font-size:13px}
+  .formula{font-family:ui-monospace,Menlo,monospace;background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:8px 12px;margin:10px 0;font-size:14px;color:var(--purple)}
+  .nv{display:inline-block;background:#13311c;color:var(--green);border:1px solid #1f5130;
+    border-radius:6px;padding:2px 9px;font-size:13px;font-weight:700;margin-top:6px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;margin-left:auto}
+  .tag.value{background:#2a2410;color:var(--amber);border:1px solid #4a3d10}
+  .tag.growth{background:#10261c;color:var(--green);border:1px solid #1f5130}
+  .tag.both{background:#1a2433;color:var(--accent);border:1px solid #244166}
+
+  /* interactive */
+  .sel{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 18px}
+  .sel button{flex:1;min-width:90px;background:var(--panel);border:1px solid var(--line);color:var(--sub);
+    border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:14px}
+  .sel button.active{background:var(--panel2);color:var(--txt);border-color:var(--accent)}
+  .gauge{margin:10px 0 4px}
+  .track{position:relative;height:46px;border-radius:10px;overflow:hidden;display:flex}
+  .track .zone{height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;
+    font-weight:700;color:#0a0a0a;opacity:.92;text-align:center;padding:0 2px}
+  .needle{position:absolute;top:-6px;bottom:-6px;width:3px;background:#fff;box-shadow:0 0 0 2px #000;
+    transition:left .25s cubic-bezier(.2,.8,.2,1);z-index:3}
+  .needle::after{content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:#fff}
+  .scaleN{display:flex;justify-content:space-between;color:var(--sub);font-size:11px;margin-top:4px}
+  .ctrl{display:flex;align-items:center;gap:14px;margin:18px 0 6px}
+  .ctrl input[type=range]{flex:1;accent-color:var(--accent)}
+  .ctrl .num{font-family:ui-monospace,monospace;font-size:26px;font-weight:800;min-width:96px;text-align:right}
+  .verdict{border-radius:12px;padding:16px 18px;margin-top:14px;border:1px solid var(--line);background:var(--panel2)}
+  .verdict .vt{font-size:18px;font-weight:800;margin:0 0 4px}
+  .verdict .vd{color:var(--sub);font-size:14px;margin:0}
+  .bench{color:var(--sub);font-size:13px;margin-top:8px}
+  .bench b{color:var(--txt)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .chip{font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:3px 10px;color:var(--sub);cursor:pointer}
+  .chip:hover{color:var(--txt);border-color:var(--accent)}
+
+  /* memory */
+  pre.tree{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;
+    overflow:auto;font-size:13px;color:var(--txt);font-family:ui-monospace,monospace;line-height:1.7}
+  .punch{background:linear-gradient(135deg,#11203a,#0d1117);border:1px solid var(--accent);
+    border-radius:12px;padding:16px 18px;margin:14px 0;font-size:16px;font-weight:700}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--panel2);color:var(--sub)}
+
+  /* quiz */
+  .q{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+  .q .qx{font-weight:700;font-size:15px;margin-bottom:12px}
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opts button{text-align:left;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:11px 14px;cursor:pointer;font-size:14px;transition:.12s}
+  .opts button:hover{border-color:var(--accent)}
+  .opts button.correct{background:#10261c;border-color:var(--green);color:var(--green)}
+  .opts button.wrong{background:#2a1414;border-color:var(--red);color:var(--red)}
+  .expl{margin-top:10px;font-size:13px;color:var(--sub);display:none}
+  .expl.show{display:block}
+  .score{position:sticky;bottom:0;text-align:center;padding:12px;color:var(--sub);font-size:14px}
+  .disc{color:var(--sub);font-size:12px;text-align:center;margin-top:30px;line-height:1.6}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>📈 株式指標 学習アプリ</h1>
+  <p>NVIDIA を入り口に、指標の「効き方」を体で覚える</p>
+</header>
+
+<nav>
+  <button class="active" data-t="learn">学ぶ</button>
+  <button data-t="judge">判定する</button>
+  <button data-t="memo">覚える</button>
+  <button data-t="quiz">クイズ</button>
+</nav>
+
+<div class="wrap">
+
+<!-- ===== LEARN ===== -->
+<section id="learn" class="show">
+  <h2 class="tt">6つの指標</h2>
+  <p class="lead">数字は2026年6月時点のNVIDIA。株価は日々動くので目安です。</p>
+  <div id="cards"></div>
+  <div class="punch">関係式：PBR ≒ ROE × PER。NVIDIAのPBRが27倍と異常に高いのは、ROEが114%と異常に高いことの裏返し。だからPBR単体で「割高」と判断してはいけない。</div>
+</section>
+
+<!-- ===== JUDGE ===== -->
+<section id="judge">
+  <h2 class="tt">指標を判定する</h2>
+  <p class="lead">指標を選んで値を動かすと、S&P500基準と比べて「成長株か・割安か・危険か」を判定します。</p>
+  <div class="sel" id="jsel"></div>
+  <div class="gauge">
+    <div class="track" id="track"><div class="needle" id="needle"></div></div>
+    <div class="scaleN" id="scaleN"></div>
+  </div>
+  <div class="ctrl">
+    <input type="range" id="slider" min="0" max="100" step="1">
+    <div class="num" id="numv">–</div>
+  </div>
+  <div class="verdict">
+    <p class="vt" id="vt">–</p>
+    <p class="vd" id="vd">指標を選んでください。</p>
+    <div class="bench" id="bench"></div>
+    <div class="chips" id="chips"></div>
+  </div>
+</section>
+
+<!-- ===== MEMO ===== -->
+<section id="memo">
+  <h2 class="tt">最強の記憶法 — 3層で固定する</h2>
+  <p class="lead">ゆうとさんがセキュリティでやる「リスクの階層化」と同じロジック。</p>
+
+  <pre class="tree">【第1層】頭文字で仕分け
+  P__ = 株価系 ……… PER / PBR / PEG   （P = Price = 株価）
+  E__ = 利益系 ……… EPS               （E = Earnings = 利益）
+  _R_ = 効率系 ……… ROE
+
+【第2層】分母で判別（Pで始まる＝「株価 vs 何か」）
+  ÷ Earnings   → PER  🎯  利益の何年分か
+  ÷ Book-value → PBR  📊  資産価値の何倍か
+  ÷ Growth     → PEG  📈  成長率で補正した割安度
+  ÷ Stock数    → EPS  💰  1株のもうけ
+  ÷ Equity     → ROE  ⚡  資本の運用効率
+
+【第3層】いつ使う（グロース vs バリュー）
+  バリュー株（銀行・商社・メーカー）
+    A級 PBR        ← 資産がっつり型だから純資産が機能
+    B級 配当利回り  ← 配当を出すから見る
+    C級 PER        ← 念のための補助
+  グロース株（NVIDIA・半導体）
+    A級 PER        ← 必須
+    B級 EPS成長率  ← 伸びてるかが全て
+    C級 PEG        ← PERを成長で補正
+    ×  PBR         ← 無視でOK（帳簿資産が少ない）</pre>
+
+  <div class="punch">固定句：「PERは万能、PBRはハイテク死ぬ」<br>「Pから始まる＝株価 vs ○○、○○側に注目」<br>「成長見るならPEG（＝PER÷成長率）」</div>
+
+  <table>
+    <tr><th>知りたいこと</th><th>使う指標</th><th>式のイメージ</th></tr>
+    <tr><td>利益効率で割安か</td><td>PER</td><td>株価 ÷ 利益</td></tr>
+    <tr><td>資産価値で割安か</td><td>PBR</td><td>株価 ÷ 資産</td></tr>
+    <tr><td>成長を織り込むと</td><td>PEG</td><td>PER ÷ 成長率</td></tr>
+    <tr><td>1株のもうけ</td><td>EPS</td><td>利益 ÷ 株数</td></tr>
+    <tr><td>資本の効率</td><td>ROE</td><td>利益 ÷ 資本</td></tr>
+  </table>
+</section>
+
+<!-- ===== QUIZ ===== -->
+<section id="quiz">
+  <h2 class="tt">理解度クイズ</h2>
+  <p class="lead">全7問。各問の選択肢をタップすると正解と解説が出ます。</p>
+  <div id="quizbox"></div>
+  <div class="score" id="score">スコア：0 / 0</div>
+</section>
+
+<p class="disc">※ これは指標の「読み方」を学ぶ教材であり、特定銘柄の売買を勧めるものではありません。実際の数値は stockanalysis.com / GuruFocus / IR BANK 等で最新を確認してください。</p>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const IND = [
+  {k:"PER", full:"Price Earnings Ratio（株価収益率）", type:"both", tag:"万能",
+   formula:"PER = 株価 ÷ EPS（1株純利益）",
+   mean:"いまの利益が何年続けば株価の元が取れるか。一番大事な指標。",
+   nv:"NVIDIA ≈ 31〜32倍", nvv:31,
+   unit:"倍", min:0, max:60, bench:20, benchLabel:"S&P500平均 ≈ 20倍",
+   zones:[
+     {to:0,  c:"#f85149", t:"赤字"},
+     {to:15, c:"#d29922", t:"割安 バリュー"},
+     {to:25, c:"#3fb950", t:"標準"},
+     {to:40, c:"#4ea1ff", t:"成長期待 グロース"},
+     {to:60, c:"#bc8cff", t:"高評価 割高注意"}],
+   verdict:v=>v<=0?["⚠️ 赤字","利益が出ていない。PERは計算できず、ここでは要注意ゾーン。"]
+     :v<15?["バリュー（割安）","利益の割に株価が低い。銀行・商社などに多い。"]
+     :v<25?["標準ゾーン","S&P500平均(約20倍)あたり。可もなく不可もなく。"]
+     :v<40?["グロース期待","将来の利益成長を織り込んで買われている。"]
+     :["割高に見える","ただし高成長企業なら正当化されることも。PEGで補正して見る。"],
+   note:"NVIDIAのPER約32倍は、半導体業界平均の約51倍より低い。業界内ではむしろ控えめ。比較対象が命。"},
+
+  {k:"EPS", full:"Earnings Per Share（1株当たり利益）", type:"growth", tag:"成長",
+   formula:"EPS = 純利益 ÷ 発行済株式数",
+   mean:"企業の「稼ぐ力」の素の値。PERの分母になる。",
+   nv:"NVIDIA ≈ $6.56", nvv:6.56,
+   unit:"$", min:0, max:15, bench:null, benchLabel:"絶対値より「伸びているか」が命",
+   zones:[
+     {to:0, c:"#f85149", t:"赤字"},
+     {to:15,c:"#3fb950", t:"プラス＝黒字（伸び続けるかが勝負）"}],
+   verdict:v=>v<=0?["⚠️ 赤字","1株あたり利益がマイナス。稼げていない。"]
+     :["黒字","稼げている。ただしEPSは水準より『成長率』が重要。去年より伸びているか？"],
+   note:"EPSが伸び続けるかどうかが株価の本丸。グロース株はここが全て。"},
+
+  {k:"PBR", full:"Price Book-value Ratio（株価純資産倍率）", type:"value", tag:"バリュー",
+   formula:"PBR = 株価 ÷ BPS（1株純資産）",
+   mean:"会社を今解散したら戻る価値（解散価値）の何倍で買われているか。",
+   nv:"NVIDIA ≈ 27.6倍（BPS $8.07）", nvv:27.6,
+   unit:"倍", min:0, max:30, bench:1, benchLabel:"1倍＝株価が純資産と同じ（節目）",
+   zones:[
+     {to:1,  c:"#d29922", t:"1倍割れ 解散価値以下"},
+     {to:3,  c:"#3fb950", t:"標準"},
+     {to:10, c:"#4ea1ff", t:"やや高"},
+     {to:30, c:"#bc8cff", t:"ハイテク型 PBRは効かない"}],
+   verdict:v=>v<1?["1倍割れ","解散価値より安い。割安だが、構造的な問題が隠れる場合も。日本の銀行・商社に多い。"]
+     :v<3?["標準","資産がっつり型のバリュー株として妥当な範囲。"]
+     :v<10?["やや高め","資産以上の価値を市場が認めている。"]
+     :["ハイテク型","この水準ではPBRはほぼ機能しない。知財・ソフト・人材が帳簿に載らず分母が小さいだけ。"],
+   note:"PBRは銀行・商社・メーカーのような資産型バリュー株向け。NVIDIAのようなグロース株に当てると『割高すぎ』と誤読する。ハイテクではPBRは死ぬ。"},
+
+  {k:"ROE", full:"Return On Equity（自己資本利益率）", type:"both", tag:"効率",
+   formula:"ROE = 純利益 ÷ 自己資本",
+   mean:"株主が預けたお金を、どれだけ効率よく利益に変えたか。",
+   nv:"NVIDIA ≈ 114%", nvv:114,
+   unit:"%", min:0, max:120, bench:15, benchLabel:"米国優良企業の目安 15%超",
+   zones:[
+     {to:0,  c:"#f85149", t:"赤字"},
+     {to:8,  c:"#d29922", t:"低効率"},
+     {to:15, c:"#3fb950", t:"日本平均〜標準"},
+     {to:40, c:"#4ea1ff", t:"優良"},
+     {to:120,c:"#bc8cff", t:"異常に高い NVIDIA級"}],
+   verdict:v=>v<=0?["⚠️ 赤字","資本を利益に変えられていない。"]
+     :v<8?["低効率","資本効率が低い。改善余地。"]
+     :v<15?["標準","日本企業の平均は8〜10%。この辺りが普通。"]
+     :v<40?["優良","米国優良企業の水準(15%超)。資本効率が高い。"]
+     :["異常に高い","NVIDIA級。資本効率が極端に高い → PBRが高くなるのは当然の裏返し。"],
+   note:"PBR ≒ ROE × PER。ROEが高い会社はPBRも高くて当然。だからPBR単体で割高判断してはいけない。"},
+
+  {k:"配当利回り", full:"Dividend Yield", type:"value", tag:"バリュー",
+   formula:"配当利回り = 1株配当 ÷ 株価",
+   mean:"株価に対して年いくら配当をもらえるか。バリュー株を見る指標。",
+   nv:"NVIDIA ≈ 0%（ほぼ無配）", nvv:0,
+   unit:"%", min:0, max:8, bench:2, benchLabel:"日本株の標準 2〜4%程度",
+   zones:[
+     {to:0.3,c:"#bc8cff", t:"無配 グロース型"},
+     {to:2,  c:"#4ea1ff", t:"低配当"},
+     {to:4,  c:"#3fb950", t:"標準"},
+     {to:6,  c:"#d29922", t:"高配当"},
+     {to:8,  c:"#f85149", t:"高すぎ 減配リスク注意"}],
+   verdict:v=>v<0.3?["無配（グロース）","利益を配当せず再投資に回す。悪いわけではない。NVIDIAはこれ。"]
+     :v<2?["低配当","成長と配当のバランス型。"]
+     :v<4?["標準","日本の高配当株でよく見る水準。バリュー投資の対象。"]
+     :v<6?["高配当","インカム狙いに向く。三菱商事のような商社など。"]
+     :["高すぎ注意","利回りが高すぎる時は株価下落・減配リスクのサインのことも。"],
+   note:"配当目当てならグロース株(無配)ではなく、商社・銀行などの高配当バリュー株を見る、という使い分け。"},
+
+  {k:"PEG", full:"Price/Earnings to Growth Ratio（株価収益成長率）", type:"growth", tag:"成長",
+   formula:"PEG = PER ÷ 利益成長率(%)",
+   mean:"PERを成長率で割って、成長性を加味した割安度を見る。グロース株向け。",
+   nv:"NVIDIA ≈ 0.46", nvv:0.46,
+   unit:"", min:0, max:3, bench:1, benchLabel:"1倍が分かれ目",
+   zones:[
+     {to:1, c:"#3fb950", t:"割安 成長の割に安い"},
+     {to:2, c:"#4ea1ff", t:"妥当"},
+     {to:3, c:"#d29922", t:"割高"}],
+   verdict:v=>v<1?["割安","成長率の割には安い。PERだけだと高く見える銘柄も、成長で補正すると買える。NVIDIAは0.46でここ。"]
+     :v<2?["妥当","成長に見合った価格。"]
+     :["割高","成長を加味しても高い。"],
+   note:"PERだけだと高く見えるグロース株を、成長で補正する指標。1を下回ると割安とされる。"}
+];
+
+/* ---------- LEARN cards ---------- */
+const tagTxt={value:"バリュー向き",growth:"グロース向き",both:"両方"};
+document.getElementById('cards').innerHTML = IND.map(d=>`
+  <div class="card">
+    <div class="top">
+      <span class="badge">${d.k}</span>
+      <span class="full">${d.full}</span>
+      <span class="tag ${d.type}">${tagTxt[d.type]}</span>
+    </div>
+    <div class="formula">${d.formula}</div>
+    <div>${d.mean}</div>
+    <div class="nv">${d.nv}</div>
+    <div style="color:var(--sub);font-size:13px;margin-top:10px">💡 ${d.note}</div>
+  </div>`).join('');
+
+/* ---------- JUDGE ---------- */
+let cur=0;
+const jsel=document.getElementById('jsel');
+jsel.innerHTML=IND.map((d,i)=>`<button data-i="${i}">${d.k}</button>`).join('');
+const slider=document.getElementById('slider'), numv=document.getElementById('numv'),
+  track=document.getElementById('track'), needle=document.getElementById('needle'),
+  scaleN=document.getElementById('scaleN'), vt=document.getElementById('vt'),
+  vd=document.getElementById('vd'), bench=document.getElementById('bench'),
+  chips=document.getElementById('chips');
+
+function buildTrack(d){
+  let html='<div class="needle" id="needle"></div>';
+  let prev=d.min;
+  d.zones.forEach(z=>{
+    const w=(z.to-prev)/(d.max-d.min)*100;
+    if(w>0) html+=`<div class="zone" style="flex:0 0 ${w}%;background:${z.c}">${z.t}</div>`;
+    prev=z.to;
+  });
+  track.innerHTML=html;
+  // scale numbers
+  scaleN.innerHTML=`<span>${d.min}${d.unit}</span><span>${((d.min+d.max)/2)}${d.unit}</span><span>${d.max}${d.unit}</span>`;
+}
+function fmt(v,d){ return d.unit==="$"?("$"+v.toFixed(2)):(v+d.unit); }
+
+function render(){
+  const d=IND[cur];
+  const v=parseFloat(slider.value);
+  numv.textContent=fmt(d.unit==="$"||d.k==="PEG"?v:Math.round(v),d);
+  const pct=(v-d.min)/(d.max-d.min)*100;
+  const n=track.querySelector('.needle'); n.style.left=`calc(${pct}% - 1.5px)`;
+  const [t,desc]=d.verdict(v);
+  vt.textContent=t; vd.textContent=desc;
+  bench.innerHTML = d.bench!=null
+    ? `基準：<b>${d.benchLabel}</b>（あなたの値：${fmt(d.unit==="$"||d.k==="PEG"?v:Math.round(v),d)}）`
+    : `基準：<b>${d.benchLabel}</b>`;
+}
+function selectInd(i){
+  cur=i;
+  [...jsel.children].forEach((b,bi)=>b.classList.toggle('active',bi===i));
+  const d=IND[i];
+  const step = (d.unit==="$"||d.k==="PEG")?0.01:1;
+  slider.min=d.min; slider.max=d.max; slider.step=step;
+  slider.value=d.nvv;
+  buildTrack(d);
+  // chips: presets
+  chips.innerHTML = `<span class="chip" data-v="${d.nvv}">NVIDIA (${fmt(d.nvv,d)})</span>` +
+    (d.bench!=null?`<span class="chip" data-v="${d.bench}">基準 (${fmt(d.bench,d)})</span>`:``);
+  render();
+}
+jsel.addEventListener('click',e=>{const b=e.target.closest('button');if(b)selectInd(+b.dataset.i);});
+slider.addEventListener('input',render);
+chips.addEventListener('click',e=>{const c=e.target.closest('.chip');if(c){slider.value=c.dataset.v;render();}});
+
+/* ---------- QUIZ ---------- */
+const QZ=[
+ {q:"NVIDIAのようなハイテク・グロース株で、ほぼ役に立たない（無視してOKな）指標は？",
+  o:["PER","PBR","EPS成長率","PEG"],a:1,
+  e:"PBR。知財・ソフト・人材が帳簿に載らず純資産(分母)が小さく出るため、ハイテクではPBRは異常に高くなり機能しない。"},
+ {q:"PER 31倍を「高い」と判断する前に、最も必要なことは？",
+  o:["すぐ売る","同業他社・S&P500平均・過去レンジと比較する","PBRを見る","配当利回りを見る"],a:1,
+  e:"比較対象を持つこと。NVIDIAのPER約32倍も、半導体業界平均約51倍と比べれば控えめ。"},
+ {q:"PBR ≒ ___ × PER。空欄に入るのは？",
+  o:["EPS","配当利回り","ROE","PEG"],a:2,
+  e:"PBR ≒ ROE × PER。NVIDIAのPBRが27倍と高いのはROEが114%と高いことの裏返し。"},
+ {q:"S&P500のPER平均は、だいたい何倍前後？",
+  o:["5倍","20倍","50倍","100倍"],a:1,
+  e:"約20倍前後。これが「標準」の感覚の基準になる。日本株はもっと低め。"},
+ {q:"PEGが1を下回るとき、一般的にどう解釈する？",
+  o:["倒産寸前","成長率の割には割安","無配","資産超過"],a:1,
+  e:"PEG<1は『成長を加味するとむしろ割安』。NVIDIAは約0.46。"},
+ {q:"高配当のインカム狙いに向くのは、次のうちどのタイプ？",
+  o:["NVIDIAのようなグロース株","商社・銀行などのバリュー株","赤字企業","無配のハイテク"],a:1,
+  e:"グロース株は利益を再投資して無配が普通。配当目当てなら商社・銀行などの高配当バリュー株を見る。"},
+ {q:"3層記憶法で「Pで始まる指標」に共通するのは分子が何であること？",
+  o:["利益(Earnings)","株価(Price)","資産(Book)","成長(Growth)"],a:1,
+  e:"P = Price = 株価。PER/PBR/PEGは『株価 vs ○○』で、分母(○○)が利益・資産・成長と変わる。"}
+];
+let answered=0, correct=0;
+const qbox=document.getElementById('quizbox'), scoreEl=document.getElementById('score');
+qbox.innerHTML=QZ.map((q,i)=>`
+  <div class="q">
+    <div class="qx">Q${i+1}. ${q.q}</div>
+    <div class="opts" data-i="${i}">
+      ${q.o.map((o,j)=>`<button data-j="${j}">${o}</button>`).join('')}
+    </div>
+    <div class="expl" id="e${i}">✔ ${q.e}</div>
+  </div>`).join('');
+qbox.addEventListener('click',e=>{
+  const b=e.target.closest('.opts button'); if(!b)return;
+  const opts=b.parentElement; const qi=+opts.dataset.i;
+  if(opts.dataset.done)return; opts.dataset.done=1;
+  const j=+b.dataset.j, ans=QZ[qi].a;
+  [...opts.children].forEach((bb,bj)=>{
+    if(bj===ans)bb.classList.add('correct');
+    if(bj===j&&j!==ans)bb.classList.add('wrong');
+    bb.style.cursor='default';
+  });
+  document.getElementById('e'+qi).classList.add('show');
+  answered++; if(j===ans)correct++;
+  scoreEl.textContent=`スコア：${correct} / ${answered}`+(answered===QZ.length?(correct===QZ.length?" 🎉 全問正解！":" お疲れさま！"):"");
+});
+
+/* ---------- nav ---------- */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('show'));
+    document.getElementById(b.dataset.t).classList.add('show');
+    if(b.dataset.t==='judge'&&!jsel.dataset.init){jsel.dataset.init=1;selectInd(0);}
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+selectInd(0);
+</script>
+</body>
+</html>
